@@ -44,29 +44,48 @@ void ofApp::update(){
     
 
     //receive and check for incoming OSC messages
-     while (oscReceiver.hasWaitingMessages()) {
-         ofxOscMessage m; // Create an OSC message object
-         oscReceiver.getNextMessage(m); // Retrieve the next OSC message
+//     while (oscReceiver.hasWaitingMessages()) {
+//         ofxOscMessage m; // Create an OSC message object
+//         oscReceiver.getNextMessage(m); // Retrieve the next OSC message
+//
+//         // Log the OSC message for debugging
+//         ofLog() << "Received OSC message: " << m.getAddress();
+//
+//         // Check if the message relates to the reverb effect
+//         if (m.getAddress() == "/reverb/roomSize" || m.getAddress() == "/reverb/wetLevel") {
+//             float value = m.getArgAsFloat(0); // get  value from the OSC message
+//             isReverbActive = value > 0.0f;   // Determine if reverb should be active based on the value
+//
+//             // Adjust  motion blur  based on the OSC message parameters
+//             if (m.getAddress() == "/reverb/roomSize") {
+//                 // Map  room size value to blend factor range and apply it
+//                 motionBlur.setBlendFactor(ofMap(value, 0.0f, 1.0f, 0.1f, 2.0f));
+//             } else if (m.getAddress() == "/reverb/wetLevel") {
+//                 // Map  wet level value to stretch amount range and apply it
+//                 motionBlur.setStretchAmount(ofMap(value, 0.0f, 1.0f, 0.1f, 1.5f));
+//             }
+//         }
+//     }
+    while (oscReceiver.hasWaitingMessages()) {
+           ofxOscMessage m;
+           oscReceiver.getNextMessage(m);
+           // Log the received message
+           ofLog() << "Received OSC message: " << m.getAddress();
 
-         // Log the OSC message for debugging
-         ofLog() << "Received OSC message: " << m.getAddress();
+        // Check if the message relates to the delay effect
+        if (m.getAddress() == "/delay/delayTime" || m.getAddress() == "/delay/feedback") {
+                float delayValue = m.getArgAsFloat(0); // get  value from the OSC message
+        
+           // Handle delay-related messages
+           if (m.getAddress() == "/delay/delayTime") {
+            motionBlur.setBlendFactor(ofMap(delayValue, 0.0f, 2000.0f, 0.1f, 3.0f)); //map delay time to blend factor
+         
+           } else if (m.getAddress() == "/delay/feedback") {
+               motionBlur.setStretchAmount(ofMap(delayValue, 0.0f, 1.0f, 0.1f, 2.0f)); // map feedback to stretch
 
-         // Check if the message relates to the reverb effect
-         if (m.getAddress() == "/reverb/roomSize" || m.getAddress() == "/reverb/wetLevel") {
-             float value = m.getArgAsFloat(0); // get  value from the OSC message
-             isReverbActive = value > 0.0f;   // Determine if reverb should be active based on the value
+           }
+       }
 
-             // Adjust  motion blur  based on the OSC message parameters
-             if (m.getAddress() == "/reverb/roomSize") {
-                 // Map  room size value to blend factor range and apply it
-                 motionBlur.setBlendFactor(ofMap(value, 0.0f, 1.0f, 0.1f, 2.0f));
-             } else if (m.getAddress() == "/reverb/wetLevel") {
-                 // Map  wet level value to stretch amount range and apply it
-                 motionBlur.setStretchAmount(ofMap(value, 0.0f, 1.0f, 0.1f, 1.5f));
-             }
-         }
-     }
-    
 
     
     
