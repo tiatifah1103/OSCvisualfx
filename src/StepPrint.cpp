@@ -38,31 +38,29 @@ void StepPrinting::update(ofVideoPlayer &video) {
     }
 }
 
-void StepPrinting::apply(ofVideoPlayer &video, float x, float y, float width, float height) {
-    ofSetColor(255);
-    ofEnableBlendMode(OF_BLENDMODE_ADD); //additive blending
+    void StepPrinting::apply(ofVideoPlayer &video, float x, float y, float width, float height) {
+        ofSetColor(255);
+        ofEnableBlendMode(OF_BLENDMODE_ADD); // Additive blending for smoother transitions
 
+        // Blend frames smoothly
+        for (size_t i = 0; i < storedFrames.size(); ++i) {
+            float alpha = 255 * (1.0f - float(i) / maxStoredFrames); // Gradually fade frames
+            ofSetColor(255, 255, 255, alpha);
+            storedFrames[i].draw(x, y, width, height);
+        }
 
-    // loops through all stored frames and draws each one in sequence
-    for (const auto& frame : storedFrames) {
-        frame.draw(x, y, width, height); // Draws the frame at the specified position and size.
+        ofDisableBlendMode();
+        ofSetColor(255); // Resets to full opacity
     }
-    
-    ofDisableBlendMode();
-    ofSetColor(255);
-    
-    // Draw each stored frame with decreasing opacity
-      for (int i = 0; i < storedFrames.size(); ++i) {
-          float opacity = 255 * (1.0f - float(i) / maxStoredFrames); // calculates opacity based on frame index.
-          ofSetColor(255, 255, 255, opacity);  // sets the color with decreasing opacity.
-          storedFrames[i].draw(x, y, width, height);   // draws the frame with the calculated opacity.
-    
-      }
-
-      ofSetColor(255); // Reset to full opacity after drawing
-
-}
 
 void StepPrinting::clear() {
     storedFrames.clear();
+}
+
+void StepPrinting::setStepInterval(int interval) {
+    stepInterval = interval;  // allows external control of the step interval
+}
+
+void StepPrinting::setMaxStoredFrames(int maxFrames) {
+    maxStoredFrames = maxFrames;  // allows external control of stored frames
 }

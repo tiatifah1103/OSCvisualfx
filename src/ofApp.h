@@ -35,5 +35,7 @@ class ofApp : public ofBaseApp{
     //test commit 2
     
     bool isReverbActive = false;
+    bool isDelayActive = false;
+    
 };
 

@@ -13,7 +13,7 @@ void ofApp::setup(){
  motionBlur.setup(1.0f, 0.6f);
 //    staticEffect.setup();
     
-//   stepPrinting.setup(40); // Capture every xth frame by default -- users can adjust to make the footage more choppy/stop motiony or not
+   stepPrinting.setup(30); // Capture every xth frame by default -- users can adjust to make the footage more choppy/stop motiony or not
     
 //   glitchEffect.setup(1500, 1, 0.3);
     
@@ -25,109 +25,168 @@ void ofApp::setup(){
 //--------------------------------------------------------------
 void ofApp::update(){
     video.update();
-//   videoEcho.update(video);
+    //   videoEcho.update(video);
     
-//    staticEffect.update();
+    //    staticEffect.update();
     
-//    while (oscReceiver.hasWaitingMessages()) {
-//         ofxOscMessage msg;
-//         oscReceiver.getNextMessage(msg);
-//
-//         if (msg.getAddress() == "/reverb/roomSize") {
-//             float roomSize = msg.getArgAsFloat(0);
-//             motionBlur.setRoomSizeInfluence(roomSize); // Example function
-//         } else if (msg.getAddress() == "/reverb/wetLevel") {
-//             float wetLevel = msg.getArgAsFloat(0);
-//             motionBlur.setWetLevelInfluence(wetLevel); // Example function
-//         }
-//     }
+    //    while (oscReceiver.hasWaitingMessages()) {
+    //         ofxOscMessage msg;
+    //         oscReceiver.getNextMessage(msg);
+    //
+    //         if (msg.getAddress() == "/reverb/roomSize") {
+    //             float roomSize = msg.getArgAsFloat(0);
+    //             motionBlur.setRoomSizeInfluence(roomSize); // Example function
+    //         } else if (msg.getAddress() == "/reverb/wetLevel") {
+    //             float wetLevel = msg.getArgAsFloat(0);
+    //             motionBlur.setWetLevelInfluence(wetLevel); // Example function
+    //         }
+    //     }
+    //
     
-
     //receive and check for incoming OSC messages
-//     while (oscReceiver.hasWaitingMessages()) {
-//         ofxOscMessage m; // Create an OSC message object
-//         oscReceiver.getNextMessage(m); // Retrieve the next OSC message
-//
-//         // Log the OSC message for debugging
-//         ofLog() << "Received OSC message: " << m.getAddress();
-//
-//         // Check if the message relates to the reverb effect
-//         if (m.getAddress() == "/reverb/roomSize" || m.getAddress() == "/reverb/wetLevel") {
-//             float value = m.getArgAsFloat(0); // get  value from the OSC message
-//             isReverbActive = value > 0.0f;   // Determine if reverb should be active based on the value
-//
-//             // Adjust  motion blur  based on the OSC message parameters
-//             if (m.getAddress() == "/reverb/roomSize") {
-//                 // Map  room size value to blend factor range and apply it
-//                 motionBlur.setBlendFactor(ofMap(value, 0.0f, 1.0f, 0.1f, 2.0f));
-//             } else if (m.getAddress() == "/reverb/wetLevel") {
-//                 // Map  wet level value to stretch amount range and apply it
-//                 motionBlur.setStretchAmount(ofMap(value, 0.0f, 1.0f, 0.1f, 1.5f));
-//             }
-//         }
-//     }
     while (oscReceiver.hasWaitingMessages()) {
-           ofxOscMessage m;
-           oscReceiver.getNextMessage(m);
-           // Log the received message
-           ofLog() << "Received OSC message: " << m.getAddress();
-
+        ofxOscMessage m; // Create an OSC message object
+        oscReceiver.getNextMessage(m); // Retrieve the next OSC message
+        
+        // Log the OSC message for debugging
+        ofLog() << "Received OSC message: " << m.getAddress();
+        
+        // Check if the message relates to the reverb effect
+        if (m.getAddress() == "/reverb/roomSize" || m.getAddress() == "/reverb/wetLevel") {
+            float value = m.getArgAsFloat(0); // get  value from the OSC message
+            isReverbActive = value > 0.0f;   // Determine if reverb should be active based on the value
+            
+            // Adjust  motion blur  based on the OSC message parameters
+            if (m.getAddress() == "/reverb/roomSize") {
+                // Map  room size value to blend factor range and apply it
+                motionBlur.setBlendFactor(ofMap(value, 0.0f, 1.0f, 0.1f, 2.0f));
+            } else if (m.getAddress() == "/reverb/wetLevel") {
+                // Map  wet level value to stretch amount range and apply it
+                motionBlur.setStretchAmount(ofMap(value, 0.0f, 1.0f, 0.1f, 1.5f));
+            }
+        }
+        
         // Check if the message relates to the delay effect
         if (m.getAddress() == "/delay/delayTime" || m.getAddress() == "/delay/feedback") {
-                float delayValue = m.getArgAsFloat(0); // get  value from the OSC message
+            float delayValue = m.getArgAsFloat(0); // get  value from the OSC message
+            
+            // Handle delay-related messages
+            if (m.getAddress() == "/delay/delayTime") {
+                motionBlur.setBlendFactor(ofMap(delayValue, 0.0f, 2000.0f, 0.1f, 3.0f)); //map delay time to blend factor
+                
+            } else if (m.getAddress() == "/delay/feedback") {
+                motionBlur.setStretchAmount(ofMap(delayValue, 0.0f, 1.0f, 0.1f, 2.0f)); // map feedback to stretch
+                
+            }
+            
+            // Check for delay mix
+          else if (m.getAddress() == "/delay/mix") {
+                float mix = m.getArgAsFloat(0); // Get the mix value
+                stepPrinting.setStepInterval(ofMap(mix, 0.0f, 1.0f, 1, 30)); // Map mix to max stored frames
+              stepPrinting.setMaxStoredFrames(ofMap(mix, 0.0f, 1.0f, 1, 40));
+                // ofLog() << "Updated Max Stored Frames (via Mix): " << stepPrinting.getMaxStoredFrames();
+            }
+            
+        }
         
-           // Handle delay-related messages
-           if (m.getAddress() == "/delay/delayTime") {
-            motionBlur.setBlendFactor(ofMap(delayValue, 0.0f, 2000.0f, 0.1f, 3.0f)); //map delay time to blend factor
-         
-           } else if (m.getAddress() == "/delay/feedback") {
-               motionBlur.setStretchAmount(ofMap(delayValue, 0.0f, 1.0f, 0.1f, 2.0f)); // map feedback to stretch
-
-           }
-       }
-
-
     
-    
+        // effects activation logic
+        
+        
+        // Check for Reverb Activation
+        if (m.getAddress() == "/effect/reverb/activate") {
+            isReverbActive = m.getArgAsInt(0) == 1; // Activate reverb
+            if (isReverbActive) isDelayActive = false; // Deactivate conflicts
+        }
 
-    
+        // Check for Delay Activation
+        if (m.getAddress() == "/effect/delay/activate") {
+            isDelayActive = m.getArgAsInt(0) == 1; // Activate delay
+            if (isDelayActive) isReverbActive = false; // Deactivate conflicts
+        }
 
-    
-    if (video.isFrameNew()) {
-        motionBlur.update(video); // Always update motion blur
+//        // Handle Reverb Parameters
+//        if (isReverbActive && m.getAddress() == "/reverb/roomSize") {
+//            float roomSize = m.getArgAsFloat(0);
+//            motionBlur.setBlendFactor(ofMap(roomSize, 0.0f, 1.0f, 0.1f, 2.0f));
+//        }
+//
+//        // Handle Delay Parameters
+//        if (isDelayActive && m.getAddress() == "/delay/delayTime") {
+//            float delayTime = m.getArgAsFloat(0);
+//            motionBlur.setBlendFactor(ofMap(delayTime, 0.0f, 2000.0f, 0.1f, 3.0f));
+//        }
     }
     
+    //    while (oscReceiver.hasWaitingMessages()) {
+    //        ofxOscMessage m;
+    //        oscReceiver.getNextMessage(m);
+    //        // Log the received message
+    //        ofLog() << "Received OSC message: " << m.getAddress();
+    //
+    //        // Check if the message relates to the delay effect
+    //        if (m.getAddress() == "/delay/delayTime" || m.getAddress() == "/delay/feedback") {
+    //            float delayValue = m.getArgAsFloat(0); // get  value from the OSC message
+    //
+    //            // Handle delay-related messages
+    //            if (m.getAddress() == "/delay/delayTime") {
+    //                motionBlur.setBlendFactor(ofMap(delayValue, 0.0f, 2000.0f, 0.1f, 3.0f)); //map delay time to blend factor
+    //
+    //            } else if (m.getAddress() == "/delay/feedback") {
+    //                motionBlur.setStretchAmount(ofMap(delayValue, 0.0f, 1.0f, 0.1f, 2.0f)); // map feedback to stretch
+    //
+    //            }
+    //        }
+    
 
     
+            if (video.isFrameNew() && isReverbActive) {
+                motionBlur.update(video); // Always update motion blur if reverb is active
+            }
     
+    // Update step printing if the video frame is new
+    if (video.isFrameNew() && isDelayActive) {
+        stepPrinting.update(video);
+    }
     
-//
-//    if (video.isFrameNew()){
-//        stepPrinting.update(video);
-//    }
+}
  
 //    if (video.isFrameNew()) {
 //          glitchEffect.update(video);  // Update the glitch effect
 //      }
-}
+//}
 
 //--------------------------------------------------------------
 void ofApp::draw(){
     ofBackground(0, 0, 0);
+    
+    if (isReverbActive) {
+          motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
+      } else if (isDelayActive) {
+        //  motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
+        stepPrinting.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
+      } else {
+          video.draw(0, 0, ofGetWidth(), ofGetHeight());
+      }
+    
+    
 //   videoEcho.apply(video, 0,0, ofGetWidth()/2, ofGetHeight()/2);
 //    staticEffect.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
     
-    if (isReverbActive) {
-        motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
-    } else {
-        motionBlur.setBlendFactor(1.0f);
-        motionBlur.setStretchAmount(0.6f);
-        motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
-    }
+//    if (isReverbActive) {
+    //    motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
+//    } else {
+//        motionBlur.setBlendFactor(1.0f);
+//        motionBlur.setStretchAmount(0.6f);
+//        motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
+//    }
 //
-//    stepPrinting.apply(video, 0,0, ofGetWidth(), ofGetHeight());
+    //stepPrinting.apply(video, 0,0, ofGetWidth(), ofGetHeight());
     
 //  glitchEffect.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
+    
+    
+    
 }
 
 //--------------------------------------------------------------
@@ -137,9 +196,9 @@ void ofApp::exit(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    if (key == 's') {  // Press 's' to toggle the static effect
-         staticEffect.toggleStatic(!staticEffect.isStaticActive);
-     }
+//    if (key == 's') {  // Press 's' to toggle the static effect
+//         staticEffect.toggleStatic(!staticEffect.isStaticActive);
+//     }
 }
 
 //--------------------------------------------------------------

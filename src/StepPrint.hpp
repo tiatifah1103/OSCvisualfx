@@ -16,10 +16,14 @@ public:
     void update(ofVideoPlayer &video);
     void apply(ofVideoPlayer &video, float x, float y, float width, float height);
     void clear();
+    void setStepInterval(int interval);
+    void setMaxStoredFrames(int maxFrames);
     
 private:
     vector<ofImage> storedFrames;
     int stepInterval;
     int frameCounter;
     int maxStoredFrames;
+    float feedbackFactor; // Dynamic factor influenced by feedback
+
 };
