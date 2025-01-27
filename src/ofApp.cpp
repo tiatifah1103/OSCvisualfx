@@ -1,15 +1,31 @@
 #include "ofApp.h"
 
-//having issues with two effects playing at one time need to fix asap
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    video.load("1980s_UK_Dance_Hall_Party_Black_British_Life_Home_Movies.mp4"); //test video
-//    video.setLoopState(OF_LOOP_NORMAL);
-    video.play();
-    
-//   videoEcho.setup(0.9f, 0.9f, 10); //300 ms delay // with some videos the echo effect is MUCH less obvious users will need to set some heavy parameters on this one to make it very obvious in some vids
-
+    // Load the JSON file
+    ofFile file("video_array.json");
+    if (file.exists()) {
+        ofJson json = ofLoadJson(file);
+        
+        // Check if the JSON structure is valid and contains videos
+        if (json.contains("videos")) {
+            const auto& videoPaths = json["videos"];
+            
+            // Loop through the paths and load the videos
+            for (const auto& path : videoPaths) {
+                ofVideoPlayer video;
+                video.load(path.get<string>());
+                videos.push_back(video);
+                video.setLoopState(OF_LOOP_NORMAL);
+                video.play(); // Start playing the video immediately
+            }
+        } else {
+            ofLog() << "Error: JSON file does not contain 'videos' array!";
+        }
+    } else {
+        ofLog() << "Error: videos.json file not found!";
+    }
  motionBlur.setup(1.0f, 0.6f);
 //    staticEffect.setup();
     
@@ -20,11 +36,42 @@ void ofApp::setup(){
     // Listen for OSC messages on port 9000
     oscReceiver.setup(9000);
     ofLog() << "Listening for OSC messages on port 9000...";
+    
+    videos[currentVideoIndex].setVolume(0.0); // Mute the current video
+
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
-    video.update();
+    
+    // Ensure only the current video is updated
+      if (!videos.empty()) {
+          for (int i = 0; i < videos.size(); ++i) {
+              if (i == currentVideoIndex) {
+                  videos[i].update();
+              } else {
+                  videos[i].stop(); // Stops non-selected videos
+              }
+          }
+      }
+
+      // Check and update active effects
+      if (isReverbActive && videos[currentVideoIndex].isFrameNew()) {
+          motionBlur.update(videos[currentVideoIndex]);
+      }
+      if (isDelayActive && videos[currentVideoIndex].isFrameNew()) {
+          stepPrinting.update(videos[currentVideoIndex]);
+      }
+
+//       // Check and update effects, including Motion Blur and Step Printing
+//       if (video.isFrameNew() && isReverbActive) {
+//           motionBlur.update(video);
+//       }
+//
+//       if (video.isFrameNew() && isDelayActive) {
+//           stepPrinting.update(video);
+//       }
+   
     //   videoEcho.update(video);
     
     //    staticEffect.update();
@@ -104,6 +151,21 @@ void ofApp::update(){
             isDelayActive = m.getArgAsInt(0) == 1; // Activate delay
             if (isDelayActive) isReverbActive = false; // Deactivate conflicts
         }
+        
+        // Check for video advancement
+               if (m.getAddress() == "/video/advance" && m.getArgAsInt(0) == 1) {
+                   currentVideoIndex = (currentVideoIndex + 1) % videos.size(); // Advance to the next video
+                   ofLog() << "Video advanced to index: " << currentVideoIndex;
+
+                   // Stop the previous video and play the next one
+                   for (int i = 0; i < videos.size(); ++i) {
+                       if (i == currentVideoIndex) {
+                           videos[i].play();
+                       } else {
+                           videos[i].stop();
+                       }
+                   }
+               }
 
 //        // Handle Reverb Parameters
 //        if (isReverbActive && m.getAddress() == "/reverb/roomSize") {
@@ -139,16 +201,16 @@ void ofApp::update(){
     //        }
     
 
-    
-            if (video.isFrameNew() && isReverbActive) {
-                motionBlur.update(video); // Always update motion blur if reverb is active
-            }
-    
-    // Update step printing if the video frame is new
-    if (video.isFrameNew() && isDelayActive) {
-        stepPrinting.update(video);
-    }
-    
+//    
+//            if (video.isFrameNew() && isReverbActive) {
+//                motionBlur.update(video); // Always update motion blur if reverb is active
+//            }
+//    
+//    // Update step printing if the video frame is new
+//    if (video.isFrameNew() && isDelayActive) {
+//        stepPrinting.update(video);
+//    }
+//    
 }
  
 //    if (video.isFrameNew()) {
@@ -160,15 +222,16 @@ void ofApp::update(){
 void ofApp::draw(){
     ofBackground(0, 0, 0);
     
-    if (isReverbActive) {
-          motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
-      } else if (isDelayActive) {
-        //  motionBlur.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
-        stepPrinting.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
-      } else {
-          video.draw(0, 0, ofGetWidth(), ofGetHeight());
-      }
-    
+    // Check if there are videos and draw the current one with effects
+    if (!videos.empty()) {
+        if (isReverbActive) {
+            motionBlur.apply(videos[currentVideoIndex], 0, 0, ofGetWidth(), ofGetHeight());
+        } else if (isDelayActive) {
+            stepPrinting.apply(videos[currentVideoIndex], 0, 0, ofGetWidth(), ofGetHeight());
+        } else {
+            videos[currentVideoIndex].draw(0, 0, ofGetWidth(), ofGetHeight());
+        }
+    }
     
 //   videoEcho.apply(video, 0,0, ofGetWidth()/2, ofGetHeight()/2);
 //    staticEffect.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
@@ -199,6 +262,11 @@ void ofApp::keyPressed(int key){
 //    if (key == 's') {  // Press 's' to toggle the static effect
 //         staticEffect.toggleStatic(!staticEffect.isStaticActive);
 //     }
+    
+    if (key == 'n') {  // Press 'n' to go to the next video
+        currentVideoIndex = (currentVideoIndex + 1) % videos.size();
+        videos[currentVideoIndex].play();
+    }
 }
 
 //--------------------------------------------------------------

@@ -37,5 +37,8 @@ class ofApp : public ofBaseApp{
     bool isReverbActive = false;
     bool isDelayActive = false;
     
+    // Declare a vector to store the video objects
+    vector<ofVideoPlayer> videos;
+    int currentVideoIndex = 0;  // Track the current video index
 };
 
