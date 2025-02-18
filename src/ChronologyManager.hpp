@@ -1,47 +1,49 @@
-
-
 #pragma once
-
 #include "ofMain.h"
-#include "ofxJSON.h"
+#include <random>
+
+struct Clip {
+    std::string videoPath;
+    std::string description;
+    ofVideoPlayer video;
+};
+
+struct Anchor {
+    std::string videoPath;
+    std::string description;
+    ofVideoPlayer video;
+};
+
+struct Topic {
+    std::string name;
+    Anchor anchor;
+    std::vector<Clip> footage;
+};
 
 class ChronologyManager : public ofBaseApp {
 public:
-    // Struct for video clips
-    struct Clip {
-        std::string videoPath;
-        std::string description;
-        ofVideoPlayer video;
-    };
+    void setup();
+    void update();
+    void draw();
+    void keyPressed(int key);
 
-    // Struct for topics
-    struct Topic {
-        std::string name;
-        Clip anchor;
-        std::vector<Clip> footage;
-    };
-
-    // Variables
+    ofVideoPlayer* getCurrentVideo();
+private:
+    // Topics and clips
     std::vector<Topic> topics;
     Topic* currentTopic = nullptr;
-
     int currentFootageIndex = 0;
     bool playingAnchor = true;
 
-    void setup() override;
-    void update() override;
-    void draw() override;
-    void keyPressed(int key) override;
-    ofVideoPlayer* getCurrentVideo();
+    // Looping controls
+    bool isLooping = false;
+    float loopStartTime = 0;
+    float loopEndTime = 0;
+    float loopDuration = 10.0f;
 
-private:
-    // Helper functions
     void selectRandomTopic();
     void randomizeFootageOrder();
     void playCurrentFootage();
-    
-    bool isLooping = false;
-    float loopStartTime = 0;
-    float loopDuration = 6.0f;       // 6 seconds for the loop
-    bool isVideoLooping = false;
+    void startLooping();
+    void stopLooping();
 };

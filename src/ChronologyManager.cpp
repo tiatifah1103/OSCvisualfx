@@ -1,14 +1,8 @@
-
 #include "ChronologyManager.hpp"
 
-bool isLooping = false;
-float loopStartTime = 0;          // Time when the loop starts
-float loopDuration = 6.0f;
-bool isVideoLooping = false;      //flag to make sure only one video is looping at a time
-float loopStartPosition = 0;      // The starting position of the loop (secs)
-
+// Setup function
 void ChronologyManager::setup() {
-    // Load JSON (same as before)
+    // Load JSON
     ofFile file("footage.json");
     if (file.exists()) {
         ofJson json = ofLoadJson(file);
@@ -40,15 +34,19 @@ void ChronologyManager::setup() {
     }
 }
 
+// Update function
 void ChronologyManager::update() {
     if (currentTopic) {
-        // Handles loop timing
         if (isLooping) {
-            float elapsedTime = ofGetElapsedTimef() - loopStartTime;
-            if (elapsedTime >= loopDuration) {
-                // Stops looping after 6 seconds
-                isLooping = false;
-                currentTopic->footage[currentFootageIndex].video.setFrame(loopStartPosition * currentTopic->footage[currentFootageIndex].video.getTotalNumFrames() / currentTopic->footage[currentFootageIndex].video.getDuration());
+            // Get current playback time in seconds
+            float currentTime = currentTopic->footage[currentFootageIndex].video.getPosition() *
+                                currentTopic->footage[currentFootageIndex].video.getDuration();
+
+            // Check if we've exceeded the loop end time
+            if (currentTime > loopEndTime) {
+                // Restart the video at the loop's start time
+                float normalizedLoopStart = loopStartTime / currentTopic->footage[currentFootageIndex].video.getDuration();
+                currentTopic->footage[currentFootageIndex].video.setPosition(normalizedLoopStart);
                 currentTopic->footage[currentFootageIndex].video.play();
             }
         }
@@ -59,7 +57,6 @@ void ChronologyManager::update() {
                 // Stop anchor playback
                 currentTopic->anchor.video.stop();
 
-                //When  anchor completed it switches to footage
                 playingAnchor = false;
                 currentFootageIndex = 0;
                 randomizeFootageOrder();
@@ -81,27 +78,23 @@ void ChronologyManager::draw() {
     }
 }
 
-// Key presses handling for clips
+
 void ChronologyManager::keyPressed(int key) {
     if (currentTopic && !playingAnchor) {
         if (key == OF_KEY_RIGHT) {
-            // Skips to next footage
             currentFootageIndex = (currentFootageIndex + 1) % currentTopic->footage.size();
             playCurrentFootage();
         } else if (key == OF_KEY_LEFT) {
-            // Skips to previous footage
             currentFootageIndex = (currentFootageIndex - 1 + currentTopic->footage.size()) % currentTopic->footage.size();
             playCurrentFootage();
         } else if (key == 'n') {
-            // Skips to a new random topic
             selectRandomTopic();
         } else if (key == 'l') {
-            // Triggers looping on the current footage for 6 seconds
-            isLooping = true;
-            loopStartTime = ofGetElapsedTimef();
-            loopStartPosition = currentTopic->footage[currentFootageIndex].video.getPosition();  // Gets current video position
-            currentTopic->footage[currentFootageIndex].video.setFrame(loopStartPosition * currentTopic->footage[currentFootageIndex].video.getTotalNumFrames() / currentTopic->footage[currentFootageIndex].video.getDuration());
-            currentTopic->footage[currentFootageIndex].video.play();
+            if (isLooping) {
+                stopLooping();
+            } else {
+                startLooping();
+            }
         }
     }
 }
@@ -109,16 +102,12 @@ void ChronologyManager::keyPressed(int key) {
 void ChronologyManager::selectRandomTopic() {
     // Stops all videos from the current topic before switching
     if (currentTopic) {
-        // Stops the anchor video
         currentTopic->anchor.video.stop();
-
-        // Stops all footage videos
         for (auto& clip : currentTopic->footage) {
             clip.video.stop();
         }
     }
 
-    // Selects a new random topic that is different from the current one
     int randomIndex;
     do {
         randomIndex = ofRandom(topics.size());
@@ -133,27 +122,35 @@ void ChronologyManager::selectRandomTopic() {
 }
 
 void ChronologyManager::randomizeFootageOrder() {
-    // Use a random number generator
-    std::random_device rd; // Creates a random device to get a seed
-    std::mt19937 g(rd()); // Mersenne Twister engine creates more random numbers based on the seed.
-
-
-    std::shuffle(currentTopic->footage.begin(), currentTopic->footage.end(), g); // Mixes up the order of all the videos stored in the current topic.
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(currentTopic->footage.begin(), currentTopic->footage.end(), g);
     playCurrentFootage();
 }
 
 void ChronologyManager::playCurrentFootage() {
-    // Stops the anchor video
-    currentTopic->anchor.video.stop();
-
-    // Stops all other footage to prevent overlapping audio
     for (auto& clip : currentTopic->footage) {
         clip.video.stop();
-    }
-
-    // Plays the current footage
+   }
     currentTopic->footage[currentFootageIndex].video.play();
+    isLooping = false; // Reset looping
     ofLog() << "Playing footage: " << currentTopic->footage[currentFootageIndex].videoPath;
+}
+
+void ChronologyManager::startLooping() {
+    float currentTime = currentTopic->footage[currentFootageIndex].video.getPosition() *
+                        currentTopic->footage[currentFootageIndex].video.getDuration();
+    loopStartTime = std::max(0.0f, currentTime - loopDuration); // Ensure we don't go below 0
+    loopEndTime = currentTime;
+    isLooping = true;
+    ofLog() << "Started looping from " << loopStartTime << "s to " << loopEndTime << "s";
+}
+
+void ChronologyManager::stopLooping() {
+    isLooping = false;
+    loopStartTime = 0;
+    loopEndTime = 0;
+    ofLog() << "Exited the loop.";
 }
 
 ofVideoPlayer* ChronologyManager::getCurrentVideo() {
@@ -166,4 +163,3 @@ ofVideoPlayer* ChronologyManager::getCurrentVideo() {
     }
     return nullptr; // Return null if no video is playing
 }
-
