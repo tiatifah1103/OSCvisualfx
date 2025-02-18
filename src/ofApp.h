@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxOsc.h"
+#include "ChronologyManager.hpp"
 //#include "VideoEcho.hpp"
 #include "MotionBlur.hpp"
 #include "StepPrint.hpp"
@@ -40,5 +41,7 @@ class ofApp : public ofBaseApp{
     // Declare a vector to store the video objects
     vector<ofVideoPlayer> videos;
     int currentVideoIndex = 0;  // Track the current video index
+    
+    ChronologyManager chronologyManager;
 };
 

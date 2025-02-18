@@ -3,29 +3,9 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    // Load the JSON file
-    ofFile file("video_array.json");
-    if (file.exists()) {
-        ofJson json = ofLoadJson(file);
-        
-        // Check if the JSON structure is valid and contains videos
-        if (json.contains("videos")) {
-            const auto& videoPaths = json["videos"];
-            
-            // Loop through the paths and load the videos
-            for (const auto& path : videoPaths) {
-                ofVideoPlayer video;
-                video.load(path.get<string>());
-                videos.push_back(video);
-                video.setLoopState(OF_LOOP_NORMAL);
-                video.play(); // Start playing the video immediately
-            }
-        } else {
-            ofLog() << "Error: JSON file does not contain 'videos' array!";
-        }
-    } else {
-        ofLog() << "Error: videos.json file not found!";
-    }
+    
+    chronologyManager.setup();
+    
  motionBlur.setup(1.0f, 0.6f);
 //    staticEffect.setup();
     
@@ -36,32 +16,29 @@ void ofApp::setup(){
     // Listen for OSC messages on port 9000
     oscReceiver.setup(9000);
     ofLog() << "Listening for OSC messages on port 9000...";
-    
-    videos[currentVideoIndex].setVolume(0.0); // Mute the current video
+
 
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
     
-    // Ensure only the current video is updated
-      if (!videos.empty()) {
-          for (int i = 0; i < videos.size(); ++i) {
-              if (i == currentVideoIndex) {
-                  videos[i].update();
-              } else {
-                  videos[i].stop(); // Stops non-selected videos
-              }
-          }
-      }
+    // Update the Chronology Manager
+       chronologyManager.update();
 
-      // Check and update active effects
-      if (isReverbActive && videos[currentVideoIndex].isFrameNew()) {
-          motionBlur.update(videos[currentVideoIndex]);
-      }
-      if (isDelayActive && videos[currentVideoIndex].isFrameNew()) {
-          stepPrinting.update(videos[currentVideoIndex]);
-      }
+       // Get current video from ChronologyManager
+       ofVideoPlayer* currentVideo = chronologyManager.getCurrentVideo();
+
+       if (currentVideo && currentVideo->isFrameNew()) {
+           // Update visual effects based on the current frame
+           if (isReverbActive) {
+               motionBlur.update(*currentVideo);
+           } else if (isDelayActive) {
+               stepPrinting.update(*currentVideo);
+           }
+       }
+
+
 
 //       // Check and update effects, including Motion Blur and Step Printing
 //       if (video.isFrameNew() && isReverbActive) {
@@ -222,16 +199,30 @@ void ofApp::update(){
 void ofApp::draw(){
     ofBackground(0, 0, 0);
     
-    // Check if there are videos and draw the current one with effects
-    if (!videos.empty()) {
-        if (isReverbActive) {
-            motionBlur.apply(videos[currentVideoIndex], 0, 0, ofGetWidth(), ofGetHeight());
-        } else if (isDelayActive) {
-            stepPrinting.apply(videos[currentVideoIndex], 0, 0, ofGetWidth(), ofGetHeight());
-        } else {
-            videos[currentVideoIndex].draw(0, 0, ofGetWidth(), ofGetHeight());
-        }
-    }
+    // Get the current video from ChronologyManager
+       ofVideoPlayer* currentVideo = chronologyManager.getCurrentVideo();
+
+       if (currentVideo) {
+           if (isReverbActive) {
+               motionBlur.apply(*currentVideo, 0, 0, ofGetWidth(), ofGetHeight());
+           } else if (isDelayActive) {
+               stepPrinting.apply(*currentVideo, 0, 0, ofGetWidth(), ofGetHeight());
+           } else {
+               currentVideo->draw(0, 0, ofGetWidth(), ofGetHeight());
+           }
+       }
+    
+    
+//    // Check if there are videos and draw the current one with effects
+//    if (!videos.empty()) {
+//        if (isReverbActive) {
+//            motionBlur.apply(videos[currentVideoIndex], 0, 0, ofGetWidth(), ofGetHeight());
+//        } else if (isDelayActive) {
+//            stepPrinting.apply(videos[currentVideoIndex], 0, 0, ofGetWidth(), ofGetHeight());
+//        } else {
+//            videos[currentVideoIndex].draw(0, 0, ofGetWidth(), ofGetHeight());
+//        }
+//    }
     
 //   videoEcho.apply(video, 0,0, ofGetWidth()/2, ofGetHeight()/2);
 //    staticEffect.apply(video, 0, 0, ofGetWidth(), ofGetHeight());
@@ -262,11 +253,13 @@ void ofApp::keyPressed(int key){
 //    if (key == 's') {  // Press 's' to toggle the static effect
 //         staticEffect.toggleStatic(!staticEffect.isStaticActive);
 //     }
+//    
+//    if (key == 'n') {  // Press 'n' to go to the next video
+//        currentVideoIndex = (currentVideoIndex + 1) % videos.size();
+//        videos[currentVideoIndex].play();
+//    }
     
-    if (key == 'n') {  // Press 'n' to go to the next video
-        currentVideoIndex = (currentVideoIndex + 1) % videos.size();
-        videos[currentVideoIndex].play();
-    }
+    chronologyManager.keyPressed(key);
 }
 
 //--------------------------------------------------------------

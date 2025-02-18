@@ -1,0 +1,58 @@
+{
+  "topics": [
+    {
+      "topic_name": "Topic 1 - SOUL II SOUL",
+      "anchor_points": [
+        {
+          "anchor_id": 1,
+          "video_path": "videos/topic1-anchor-point.mp4",
+          "description": "Anchor point 1 for topic 1"
+        }
+      ],
+      "footage": [
+        {
+          "footage_id": 1,
+          "video_path": "videos/topic1_video1.mp4",
+          "description": "Footage video 1 for topic 1"
+        },
+        {
+          "footage_id": 2,
+          "video_path": "videos/topic1_video2.mp4",
+          "description": "Footage video 2 for topic 1"
+        },
+        {
+          "footage_id": 3,
+          "video_path": "videos/topic1_video3.mp4",
+          "description": "Footage video 3 for topic 1"
+        }
+      ]
+    },
+    {
+      "topic_name": "Topic 2 - BRISTOL",
+      "anchor_points": [
+        {
+          "anchor_id": 1,
+          "video_path": "videos/topic2-anchor-point.mp4",
+          "description": "Anchor point 1 for topic 2"
+        }
+      ],
+      "footage": [
+        {
+          "footage_id": 1,
+          "video_path": "videos/topic2_video1.mp4",
+          "description": "Footage video 1 for topic 2"
+        },
+        {
+          "footage_id": 2,
+          "video_path": "videos/topic2_video2.mp4",
+          "description": "Footage video 2 for topic 2"
+        },
+        {
+          "footage_id": 3,
+          "video_path": "videos/topic2_video3.mp4",
+          "description": "Footage video 3 for topic 2"
+        }
+      ]
+    }
+  ]
+}
