@@ -1,49 +1,60 @@
 #pragma once
 #include "ofMain.h"
-#include <random>
+#include "ofxJSON.h"
+#include "ofxMidi.h"
+//#include "ofApp.h"
 
-struct Clip {
-    std::string videoPath;
-    std::string description;
-    ofVideoPlayer video;
-};
 
-struct Anchor {
-    std::string videoPath;
-    std::string description;
-    ofVideoPlayer video;
-};
-
-struct Topic {
-    std::string name;
-    Anchor anchor;
-    std::vector<Clip> footage;
-};
-
-class ChronologyManager : public ofBaseApp {
+class ChronologyManager : public ofBaseApp, public ofxMidiListener {
 public:
-    void setup();
-    void update();
-    void draw();
-    void keyPressed(int key);
+    // Struct for video clips
+    struct Clip {
+        std::string videoPath;
+        std::string description;
+        ofVideoPlayer video;
+    };
 
-    ofVideoPlayer* getCurrentVideo();
-private:
-    // Topics and clips
+    // Struct for topics
+    struct Topic {
+        std::string name;
+        Clip anchor;
+        std::vector<Clip> footage;
+    };
+
+    // Variables
     std::vector<Topic> topics;
     Topic* currentTopic = nullptr;
+
     int currentFootageIndex = 0;
     bool playingAnchor = true;
 
-    // Looping controls
-    bool isLooping = false;
-    float loopStartTime = 0;
-    float loopEndTime = 0;
-    float loopDuration = 10.0f;
+    // Core openFrameworks functions
+    void setup() override;
+    void update() override;
+    void draw() override;
+    void keyPressed(int key) override;
+    
+    // MIDI methods
+    void newMidiMessage(ofxMidiMessage& message);
+    
+    ofVideoPlayer* getCurrentVideo();
+
+private:
 
     void selectRandomTopic();
     void randomizeFootageOrder();
     void playCurrentFootage();
     void startLooping();
     void stopLooping();
+    
+    bool isLooping = false;           // To track whether the loop is active
+    float loopStartTime = 0;
+   float loopEndTime = 0; // Time when the loop starts
+    float loopDuration = 6.0f;       // 10 seconds for the loop
+    bool isVideoLooping = false;
+    
+    // MIDI objects
+    ofxMidiIn midiIn;
+    ofxMidiMessage midiMessage;
+
 };
