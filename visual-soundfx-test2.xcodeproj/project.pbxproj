@@ -16,6 +16,7 @@
 		"4DC665A2-7FF2-45CD-B735-C21C557A5E31" /* jsoncpp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = "99338E0D-D91C-49DA-869C-1F686CC72AE6" /* jsoncpp.cpp */; };
 		"55072255-B3F3-493E-9876-1BD7F65664B4" /* Glitch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = "83F323D4-A996-4238-BA29-EA118C4C5D66" /* Glitch.cpp */; };
 		59D710602D63895A0033082B /* ChronologyManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59D7105E2D63895A0033082B /* ChronologyManager.cpp */; };
+		59DF79642DAC5E1B00117C98 /* FisheyeLens.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 59DF79622DAC5E1B00117C98 /* FisheyeLens.cpp */; };
 		"610B9E90-8F18-4B80-95BC-9B6602AEAFC4" /* OscReceivedElements.cpp in Sources */ = {isa = PBXBuildFile; fileRef = "81C93990-E2B2-4DBA-A795-8804AFCDD262" /* OscReceivedElements.cpp */; };
 		"69543564-DED8-4EB1-A4C2-87EF14280F67" /* ofxMidiTimecode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = "490F08D0-10E6-4B33-8D72-8DD1156A81D1" /* ofxMidiTimecode.cpp */; };
 		"6C58A23D-D9B3-4E1E-8361-5A553EF5AA58" /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = "FE53CFBB-2B9C-4B8D-B814-B43F00E0E803" /* CoreMIDI.framework */; };
@@ -94,6 +95,8 @@
 		"490F08D0-10E6-4B33-8D72-8DD1156A81D1" /* ofxMidiTimecode.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = ofxMidiTimecode.cpp; path = ../../../addons/ofxMidi/src/ofxMidiTimecode.cpp; sourceTree = SOURCE_ROOT; };
 		59D7105E2D63895A0033082B /* ChronologyManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ChronologyManager.cpp; sourceTree = "<group>"; };
 		59D7105F2D63895A0033082B /* ChronologyManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ChronologyManager.hpp; sourceTree = "<group>"; };
+		59DF79622DAC5E1B00117C98 /* FisheyeLens.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FisheyeLens.cpp; sourceTree = "<group>"; };
+		59DF79632DAC5E1B00117C98 /* FisheyeLens.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FisheyeLens.hpp; sourceTree = "<group>"; };
 		"6051CAFB-CAF2-4F8E-83A5-F768FBB42359" /* ofxRtMidiIn.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = ofxRtMidiIn.h; path = ../../../addons/ofxMidi/src/desktop/ofxRtMidiIn.h; sourceTree = SOURCE_ROOT; };
 		"607E8F60-66F5-4EF9-959D-3C2079162473" /* StepPrint.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = StepPrint.cpp; path = src/StepPrint.cpp; sourceTree = SOURCE_ROOT; };
 		"61B64364-D85C-4274-A262-1F17F47CB8B0" /* ofxMidiOut.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = ofxMidiOut.h; path = ../../../addons/ofxMidi/src/ofxMidiOut.h; sourceTree = SOURCE_ROOT; };
@@ -409,6 +412,8 @@
 				"221533EB-7E1A-4D9B-A7F8-A5B50615329C" /* Glitch.hpp */,
 				"96E1C94A-BDF4-4707-BD8C-DCC13C504C86" /* MotionBlur.cpp */,
 				"8DBECA38-2567-4678-A885-A55A93DBFD9F" /* MotionBlur.hpp */,
+				59DF79622DAC5E1B00117C98 /* FisheyeLens.cpp */,
+				59DF79632DAC5E1B00117C98 /* FisheyeLens.hpp */,
 				"98FEF639-6E27-45F1-BFC2-02227FE4C973" /* Static.cpp */,
 				"B6D1D1E6-6BDA-4E28-A359-8DA9B69C8F32" /* Static.hpp */,
 				"607E8F60-66F5-4EF9-959D-3C2079162473" /* StepPrint.cpp */,
@@ -568,6 +573,7 @@
 				"C3790E91-5087-487A-A777-F9F6403251EB" /* ofxOscParameterSync.cpp in Sources */,
 				"87A46051-5B9D-46E6-BF4C-F3ECFB1941C7" /* ofxOscReceiver.cpp in Sources */,
 				"C98320D6-D774-428E-B618-569E3CFE5B4F" /* ofxOscSender.cpp in Sources */,
+				59DF79642DAC5E1B00117C98 /* FisheyeLens.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

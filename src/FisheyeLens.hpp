@@ -1,13 +1,17 @@
-//
-//  FisheyeLens.hpp
-//  visual-soundfx-test2
-//
-//  Created by Latifah Dickson on 13/04/2025.
-//
+#pragma once
+#include "ofMain.h"
+#include "ofVideoPlayer.h"
 
-#ifndef FisheyeLens_hpp
-#define FisheyeLens_hpp
-
-#include <stdio.h>
-
-#endif /* FisheyeLens_hpp */
+class FisheyeLens {
+public:
+    FisheyeLens();
+    void setup(float _distortionStrength = 0.5f);
+    void update(const ofTexture &videoTexture);
+    void apply(float x, float y, float width, float height);
+    void setDistortionStrength(float strength);
+    float getDistortionStrength() const;
+    
+private:
+    float distortionStrength;
+    ofFbo distortedFrame;
+};

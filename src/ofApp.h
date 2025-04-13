@@ -8,6 +8,7 @@
 #include "StepPrint.hpp"
 #include "Glitch.hpp"
 #include "Static.hpp"
+#include "FisheyeLens.hpp"
 
 //#define OSC_PORT 9000
 
@@ -20,7 +21,7 @@ class ofApp : public ofBaseApp{
         void exit() override;
 
         void keyPressed(int key) override;
-        void keyReleased(int key) override;
+      //  void keyReleased(int key) override;
         
     
     ofVideoPlayer video;
@@ -31,6 +32,13 @@ class ofApp : public ofBaseApp{
     StaticEffect staticEffect;
     
     ofxOscReceiver oscReceiver;
+    
+    
+    ofFbo videoFbo;
+
+    int standardWidth = ofGetWidth();
+    int standardHeight = ofGetHeight();
+
 
     //test commit
     //test commit 2
@@ -43,5 +51,8 @@ class ofApp : public ofBaseApp{
     int currentVideoIndex = 0;  // Track the current video index
     
     ChronologyManager chronologyManager;
+    FisheyeLens fisheye;
+    bool isFisheyeActive = false;
+
 };
 
