@@ -15,7 +15,7 @@ public:
     MotionBlur();  // Constructor to initialize the effect
     
     void setup(float _blendFactor, float _stretchAmount);
-    void update(ofVideoPlayer &video);
+    void update(const ofTexture &videoTexture);
     void apply(ofVideoPlayer &video, float x, float y, float width, float height);
     float colorDistance(const ofColor &color1, const ofColor &color2);
     void clear();

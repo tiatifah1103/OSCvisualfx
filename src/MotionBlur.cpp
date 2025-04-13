@@ -28,48 +28,46 @@ float MotionBlur::colorDistance(const ofColor &color1, const ofColor &color2) {
     //this function is used to calculate the euclidean distance between colours in the RGB space - measureing how different 2 colours are which helps detect the motion between frames.
 }
 
-void MotionBlur::update(ofVideoPlayer &video) {
-    // Get the current frame's pixels
-    ofPixels currentPixels = video.getPixels();
-    int downsampleFactor = 4; // Process fewer pixels for performance
+void MotionBlur::update(const ofTexture &videoTexture) {
+    int downsampleFactor = 4;
 
-    // Allocate distorted frame buffer
-    distortedFrame.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+    // Converts texture to pixels
+    ofPixels currentPixels;
+    ofImage tempImage;
+    tempImage.allocate(videoTexture.getWidth(), videoTexture.getHeight(), OF_IMAGE_COLOR_ALPHA);
+    videoTexture.readToPixels(tempImage.getPixels());
+    currentPixels = tempImage.getPixels();
+
+    // Allocates distorted frame buffer
+    if (!distortedFrame.isAllocated()) {
+        distortedFrame.allocate(ofGetWidth(), ofGetHeight(), GL_RGBA);
+    }
     distortedFrame.begin();
-    ofClear(0, 0, 0, 0); // Clear the buffer before drawing distorted pixels
+    ofClear(0, 0, 0, 0);
 
     if (previousFramePixels.getWidth() != 0) {
         int width = currentPixels.getWidth();
         int height = currentPixels.getHeight();
 
-        // Iterate through pixels with downsampling
         for (int y = 0; y < height; y += downsampleFactor) {
             for (int x = 0; x < width; x += downsampleFactor) {
-                // Get the current and previous frame colors
                 ofColor currentColor = currentPixels.getColor(x, y);
                 ofColor previousColor = previousFramePixels.getColor(x, y);
-
-                // Calculate the difference in color intensity
                 float difference = colorDistance(currentColor, previousColor);
 
-                // Stretch or de-stretch pixels based on motion magnitude
-                float stretch = ofMap(difference, 0, 255, 0, stretchAmount); // Map motion to stretch
+                float stretch = ofMap(difference, 0, 255, 0, stretchAmount);
 
                 if (stretch > 0) {
-                    // Stretch effect: Draw a stretched rectangle in the motion direction
-                    int stretchOffset = stretch; // Amount to stretch in each direction
+                    int stretchOffset = stretch;
                     int leftX = ofClamp(x - stretchOffset, 0, width - 1);
                     int rightX = ofClamp(x + stretchOffset, 0, width - 1);
 
-                    // Blend color for stretched pixels
                     ofColor blendColor = currentColor.getLerped(previousColor, 0.5f);
                     ofSetColor(blendColor);
 
-                    // Draw stretched areas on both sides
                     ofDrawRectangle(leftX, y, downsampleFactor, downsampleFactor);
                     ofDrawRectangle(rightX, y, downsampleFactor, downsampleFactor);
                 } else {
-                    // De-stretch: Draw the original pixel with no stretching
                     ofSetColor(currentColor);
                     ofDrawRectangle(x, y, downsampleFactor, downsampleFactor);
                 }
@@ -79,16 +77,15 @@ void MotionBlur::update(ofVideoPlayer &video) {
 
     distortedFrame.end();
 
-    // Accumulate the distorted frame
+    // Accumulate
     accumulationBuffer.begin();
     ofSetColor(255, 255, 255, blendFactor * 255);
-    video.draw(0, 0, ofGetWidth(), ofGetHeight()); // Draw the original video
-    distortedFrame.draw(0, 0, ofGetWidth(), ofGetHeight()); // Overlay the distorted frame
+    distortedFrame.draw(0, 0, ofGetWidth(), ofGetHeight());
     accumulationBuffer.end();
 
-    // Store the current frame for the next update
     previousFramePixels = currentPixels;
 }
+
 
 void MotionBlur::apply(ofVideoPlayer &video, float x, float y, float width, float height){
     // Draw the accumulated motion blur from the buffer

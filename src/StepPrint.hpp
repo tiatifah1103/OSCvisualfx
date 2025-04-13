@@ -13,7 +13,7 @@ public:
     StepPrinting();
     
     void setup(int _stepInterval);
-    void update(ofVideoPlayer &video);
+    void update(const ofTexture &videoTexture);
     void apply(ofVideoPlayer &video, float x, float y, float width, float height);
     void clear();
     void setStepInterval(int interval);

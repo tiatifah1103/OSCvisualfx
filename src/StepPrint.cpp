@@ -14,19 +14,20 @@ void StepPrinting::setup(int _stepInterval) { // sets up the intervals for captu
     storedFrames.clear(); //Clears the frame buffer, preparing the effect for fresh use.
 }
 
-void StepPrinting::update(ofVideoPlayer &video) {
-    frameCounter++; //tracks when to capture frames based on the step interval
+void StepPrinting::update(const ofTexture &videoTexture) {
+    frameCounter++; // tracks when to capture frames based on the step interval
 
-    // Check if the video is loaded and has valid pixels
-    if (video.isLoaded() && video.getPixels().isAllocated()) {
+    // Check if the texture is valid
+    if (videoTexture.isAllocated()) {
         // Capture frame at the specified interval
         if (frameCounter % stepInterval == 0) {
             ofImage frame; // temp image object to hold the current frame
-            frame.setFromPixels(video.getPixels()); //copies pixel data from the video to the image
+            frame.allocate(videoTexture.getWidth(), videoTexture.getHeight(), OF_IMAGE_COLOR_ALPHA);
+            videoTexture.readToPixels(frame.getPixels()); // copies pixel data from the texture to the image
 
             // Store the new frame and ensure the vector size is managed
             storedFrames.push_back(frame); // Adds the captured frame to the `storedFrames` vector
-            
+
             // Ensures storedFrames doesn't exceed maxStoredFrames
             if (storedFrames.size() > maxStoredFrames) {
                 storedFrames.erase(storedFrames.begin());
