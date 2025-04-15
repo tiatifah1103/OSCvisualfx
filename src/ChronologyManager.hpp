@@ -21,9 +21,17 @@ public:
         std::vector<Clip> footage;
     };
 
+    struct SplitScreenClip {
+        std::string id;
+        std::string file;
+        bool hasAudio;
+        ofVideoPlayer video;
+    };
+    
     // Variables
     std::vector<Topic> topics;
     Topic* currentTopic = nullptr;
+    vector<SplitScreenClip> splitScreenClips;
 
     int currentFootageIndex = 0;
     bool playingAnchor = true;
@@ -36,6 +44,7 @@ public:
     
     // MIDI methods
     void newMidiMessage(ofxMidiMessage& message);
+    void drawSplitScreen();
     
     ofVideoPlayer* getCurrentVideo();
 
@@ -56,5 +65,9 @@ private:
     // MIDI objects
     ofxMidiIn midiIn;
     ofxMidiMessage midiMessage;
+    
+    bool splitScreenMode = false;
+    int currentSplitIndex = 0;
+
 
 };

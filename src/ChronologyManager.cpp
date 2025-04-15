@@ -28,10 +28,34 @@ void ChronologyManager::setup() {
 
             topics.push_back(topic);
         }
+        
+
 
         // Pick a random topic to start with
         selectRandomTopic();
+        
+      //  loadSplitScreenClips();
+
     }
+    
+    
+    ofJson splitJson = ofLoadJson("splitscreen.json");
+
+        for (const auto& entry : splitJson["splitScreens"]) {
+            SplitScreenClip clip;
+            clip.id = entry["id"];
+            clip.file = entry["file"];
+            clip.hasAudio = entry["hasAudio"];
+
+            clip.video.load("videos/" + clip.file);
+            clip.video.setLoopState(OF_LOOP_NORMAL);
+            clip.video.stop();  // Stop them initially
+           // clip.video.setVolume(0.0f); // ✅ Mute the clip
+
+            splitScreenClips.push_back(clip);
+            ofLog() << "Loaded " << splitScreenClips.size() << " split screen clips.";
+
+        }
     
     // Setup MIDI input
     midiIn.listInPorts();  // List available MIDI ports
@@ -77,12 +101,38 @@ void ChronologyManager::update() {
 void ChronologyManager::draw() {
     ofBackground(0);
     if (currentTopic) {
-        if (playingAnchor) {
-            currentTopic->anchor.video.draw(0, 0, ofGetWidth(), ofGetHeight());
+        if (splitScreenMode && !splitScreenClips.empty()) {
+            drawSplitScreen();
         } else {
-            currentTopic->footage[currentFootageIndex].video.draw(0, 0, ofGetWidth(), ofGetHeight());
+            if (playingAnchor) {
+                currentTopic->anchor.video.draw(0, 0, ofGetWidth(), ofGetHeight());
+            } else {
+                currentTopic->footage[currentFootageIndex].video.draw(0, 0, ofGetWidth(), ofGetHeight());
+            }
         }
     }
+}
+
+
+void ChronologyManager::drawSplitScreen() {
+    float halfWidth = ofGetWidth() / 2.0f;
+    float height = ofGetHeight();
+
+    if (!playingAnchor) {
+        currentTopic->footage[currentFootageIndex].video.draw(0, 0, halfWidth, height);
+    } else {
+        currentTopic->anchor.video.draw(0, 0, halfWidth, height);
+    }
+
+    if (splitScreenMode && !splitScreenClips.empty()) {
+        splitScreenClips[currentSplitIndex].video.update();
+    }
+
+    splitScreenClips[currentSplitIndex].video.draw(halfWidth, 0, halfWidth, height);
+    
+    ofLog() << "Drawing split screen: Left = " << (playingAnchor ? "anchor" : "footage")
+            << ", Right = " << splitScreenClips[currentSplitIndex].file;
+
 }
 
 void ChronologyManager::keyPressed(int key) {
@@ -98,13 +148,36 @@ void ChronologyManager::keyPressed(int key) {
         } else if (key == 'n') {
             // Skip to a new random topic
             selectRandomTopic();
-        } else if (key == 'l') {
+        }
+        
+        else if (key == 's') {
+            if (!playingAnchor) {
+                splitScreenMode = !splitScreenMode;
+                ofLog() << "Split screen toggled. Now: " << (splitScreenMode ? "ON" : "OFF");
+
+                if (splitScreenMode && !splitScreenClips.empty()) {
+                    currentSplitIndex = 0; // or random index if you want
+                    splitScreenClips[currentSplitIndex].video.play();
+                    playCurrentFootage(); // ensure main footage is also playing
+                } else {
+                    for (auto& clip : splitScreenClips) {
+                        clip.video.stop();
+                    }
+                }
+            } else {
+                ofLog() << "Can't toggle split screen during anchor playback.";
+            }
+        }
+
+        
+        if (key == 'l') {
             if (isLooping) {
                 stopLooping();
             } else {
                 startLooping();
             }
         }
+        
     }
 }
 

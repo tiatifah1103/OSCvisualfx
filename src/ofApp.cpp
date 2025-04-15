@@ -5,7 +5,7 @@
 void ofApp::setup(){
     
     // Set to full screen mode
-     ofSetFullscreen(true);
+     //ofSetFullscreen(true);
     
     chronologyManager.setup();
     
@@ -15,6 +15,11 @@ void ofApp::setup(){
    stepPrinting.setup(30); // Capture every xth frame by default -- users can adjust to make the footage more choppy/stop motiony or not
     
     fisheye.setup(1.5f); // Set your initial distortion strength
+    
+    // In setup
+    glitchEffect.setup(20, 10.0f, 0.5f);
+
+
     
 //   glitchEffect.setup(1500, 1, 0.3);
     
@@ -51,7 +56,7 @@ void ofApp::update(){
             motionBlur.update(videoFbo.getTexture());
         }
         
-        else if (isDelayActive) {
+        else if (isStepActive) {
             stepPrinting.update(videoFbo.getTexture());
         }
         
@@ -59,6 +64,9 @@ void ofApp::update(){
            fisheye.update(videoFbo.getTexture());
 
         }
+       else if (isGlitchActive){
+           glitchEffect.update(videoFbo.getTexture());
+       }
     }
 
         
@@ -221,16 +229,22 @@ void ofApp::update(){
     void ofApp::draw(){
         ofBackground(0, 0, 0);
         
+
+            chronologyManager.draw(); 
+        
+
         // Get the current video from ChronologyManager
         ofVideoPlayer* currentVideo = chronologyManager.getCurrentVideo();
         
         if (currentVideo) {
             if (isReverbActive) {
                 motionBlur.apply(*currentVideo, 0, 0, ofGetWidth(), ofGetHeight());
-            } else if (isDelayActive) {
+            } else if (isStepActive) {
                 stepPrinting.apply(*currentVideo, 0, 0, ofGetWidth(), ofGetHeight());
             } else if (isFisheyeActive) {
                 fisheye.apply(0, 0, ofGetWidth(), ofGetHeight());
+            } else if (isGlitchActive){
+                glitchEffect.draw(0, 0, ofGetWidth(), ofGetHeight());
             } else {
                 currentVideo->draw(0, 0, ofGetWidth(), ofGetHeight());
             }
@@ -287,7 +301,7 @@ void ofApp::update(){
         
         
         if (key == 'f') { // f to toggle fisheye
-            isFisheyeActive = !isFisheyeActive;
+            isGlitchActive = !isGlitchActive;
         }
         
     }

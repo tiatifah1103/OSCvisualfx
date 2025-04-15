@@ -53,6 +53,8 @@ class ofApp : public ofBaseApp{
     ChronologyManager chronologyManager;
     FisheyeLens fisheye;
     bool isFisheyeActive = false;
+    bool isGlitchActive = false;
+    bool isStepActive = false;
 
 };
 
