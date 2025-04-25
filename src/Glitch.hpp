@@ -8,31 +8,35 @@
 #pragma once
 #include "ofMain.h"
 
-class GlitchEffect{
+class GlitchEffect {
 public:
-    
     GlitchEffect();
-    void setup (int _glitchInterval, float _glitchStrength, float _glitchProbability);
-    void update(ofVideoPlayer &video);
-    void apply(ofVideoPlayer &video, float x, float y, float width, float height);
-    void applyGlitch(ofVideoPlayer &video, float x, float y, float width, float height);
-    
+
+    void setup(int _glitchInterval, float _glitchStrength, float _glitchProbability);
+    void update(ofTexture &videoTexture);
+    void draw(float x, float y, float width, float height);
 
 private:
-    struct Glitch {
-            float offsetX, offsetY;
-            float width, height;
-            float displacement;
-        };
+    struct GlitchRect {
+        float offsetX, offsetY, width, height, displacement;
+    };
 
-        int glitchInterval;
-        int frameCounter;
-        int glitchStrength;
-        float glitchProbability;
+    void generateGlitches(float width, float height);
+    void drawGlitches(ofTexture &tex, float x, float y, float w, float h);
 
-        bool isFrozen;                 // Whether glitches are frozen
-        int freezeDuration;            // How long to hold the frozen state
-        int freezeTimer;               // Timer for managing freeze state
+    ofFbo glitchFbo;
+    ofShader glitchShader;
 
-        std::vector<Glitch> frozenGlitches; // Store frozen glitches
+    vector<GlitchRect> frozenGlitches;
+
+    int glitchInterval;
+    int frameCounter;
+    float glitchStrength;
+    float glitchProbability;
+
+    bool isFrozen;
+    int freezeTimer;
+    int freezeDuration;
+
+    int fboWidth, fboHeight;
 };

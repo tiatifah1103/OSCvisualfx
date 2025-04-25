@@ -50,7 +50,7 @@ void ChronologyManager::setup() {
             clip.video.load("videos/" + clip.file);
             clip.video.setLoopState(OF_LOOP_NORMAL);
             clip.video.stop();  // Stop them initially
-           // clip.video.setVolume(0.0f); // ✅ Mute the clip
+            clip.video.setVolume(0.0f);
 
             splitScreenClips.push_back(clip);
             ofLog() << "Loaded " << splitScreenClips.size() << " split screen clips.";
@@ -118,21 +118,48 @@ void ChronologyManager::drawSplitScreen() {
     float halfWidth = ofGetWidth() / 2.0f;
     float height = ofGetHeight();
 
+    // Draw main footage
     if (!playingAnchor) {
+        // Ensures main video is playing
+        if (!currentTopic->footage[currentFootageIndex].video.isPlaying()) {
+            currentTopic->footage[currentFootageIndex].video.play();
+        }
         currentTopic->footage[currentFootageIndex].video.draw(0, 0, halfWidth, height);
     } else {
         currentTopic->anchor.video.draw(0, 0, halfWidth, height);
     }
 
+    // Draw right side (split screen content)
     if (splitScreenMode && !splitScreenClips.empty()) {
+        // Ensure split screen video is playing
+        if (!splitScreenClips[currentSplitIndex].video.isPlaying()) {
+            splitScreenClips[currentSplitIndex].video.play();
+        }
+        
         splitScreenClips[currentSplitIndex].video.update();
+        
+        // Aspect-ratio correct dimensions
+        float videoWidth = splitScreenClips[currentSplitIndex].video.getWidth();
+        float videoHeight = splitScreenClips[currentSplitIndex].video.getHeight();
+        float videoAspect = videoWidth / videoHeight;
+        float screenAspect = halfWidth / height;
+        
+        float drawWidth, drawHeight;
+        float drawX = halfWidth;
+        float drawY = 0;
+        
+        if (videoAspect > screenAspect) {
+            drawWidth = halfWidth;
+            drawHeight = drawWidth / videoAspect;
+            drawY = (height - drawHeight) / 2.0f;
+        } else {
+            drawHeight = height;
+            drawWidth = drawHeight * videoAspect;
+            drawX = halfWidth + (halfWidth - drawWidth) / 2.0f;
+        }
+        
+        splitScreenClips[currentSplitIndex].video.draw(drawX, drawY, drawWidth, drawHeight);
     }
-
-    splitScreenClips[currentSplitIndex].video.draw(halfWidth, 0, halfWidth, height);
-    
-    ofLog() << "Drawing split screen: Left = " << (playingAnchor ? "anchor" : "footage")
-            << ", Right = " << splitScreenClips[currentSplitIndex].file;
-
 }
 
 void ChronologyManager::keyPressed(int key) {
@@ -148,25 +175,6 @@ void ChronologyManager::keyPressed(int key) {
         } else if (key == 'n') {
             // Skip to a new random topic
             selectRandomTopic();
-        }
-        
-        else if (key == 's') {
-            if (!playingAnchor) {
-                splitScreenMode = !splitScreenMode;
-                ofLog() << "Split screen toggled. Now: " << (splitScreenMode ? "ON" : "OFF");
-
-                if (splitScreenMode && !splitScreenClips.empty()) {
-                    currentSplitIndex = 0; // or random index if you want
-                    splitScreenClips[currentSplitIndex].video.play();
-                    playCurrentFootage(); // ensure main footage is also playing
-                } else {
-                    for (auto& clip : splitScreenClips) {
-                        clip.video.stop();
-                    }
-                }
-            } else {
-                ofLog() << "Can't toggle split screen during anchor playback.";
-            }
         }
 
         
@@ -211,10 +219,18 @@ void ChronologyManager::randomizeFootageOrder() {
 }
 
 void ChronologyManager::playCurrentFootage() {
+    // Only stopa other videos if they are playing
     for (auto& clip : currentTopic->footage) {
-        clip.video.stop();
+        if (&clip != &currentTopic->footage[currentFootageIndex] && clip.video.isPlaying()) {
+            clip.video.stop();
+        }
     }
-    currentTopic->footage[currentFootageIndex].video.play();
+    
+    // Only start playing if not already playing
+    if (!currentTopic->footage[currentFootageIndex].video.isPlaying()) {
+        currentTopic->footage[currentFootageIndex].video.play();
+    }
+    
     isLooping = false; // Reset looping
     ofLog() << "Playing footage: " << currentTopic->footage[currentFootageIndex].videoPath;
 }
@@ -241,42 +257,34 @@ void ChronologyManager::newMidiMessage(ofxMidiMessage& message) {
     if (currentTopic && !playingAnchor) {
         // Handle jogwheel (Controller #25)
         if (message.status == MIDI_CONTROL_CHANGE && message.control == 25) {
-            static bool jogwheelSpinning = false; // Track if jogwheel is actively spinning
-            static bool jogwheelReversed = false; // Track anti-clockwise spin state
-            static unsigned long lastMovementTime = 0; // Track the last jogwheel activity time
-            const int movementThresholdMin = 5;  // Minimum value for jogwheel movement
-            const int movementThresholdMax = 10; // Maximum value for jogwheel movement
-            const int reverseMovementThresholdMin = 110;  // Updated threshold for anti-clockwise movement
-            const int reverseMovementThresholdMax = 124;  // Maximum value for anti-clockwise movement
+            static bool jogwheelSpinning = false;
+            static bool jogwheelReversed = false;
+            static unsigned long lastMovementTime = 0;
+            const int movementThresholdMin = 5;
+            const int movementThresholdMax = 10;
+            const int reverseMovementThresholdMin = 110;
+            const int reverseMovementThresholdMax = 124;
             
             if (message.value >= movementThresholdMin && message.value <= movementThresholdMax) {
-                // Jogwheel is actively spinning clockwise
                 jogwheelSpinning = true;
-                jogwheelReversed = false; // Reset reverse flag when clockwise spinning
-                lastMovementTime = ofGetElapsedTimeMillis(); // Update last activity time
+                jogwheelReversed = false;
+                lastMovementTime = ofGetElapsedTimeMillis();
             } else if (message.value >= reverseMovementThresholdMin && message.value <= reverseMovementThresholdMax) {
-                // Jogwheel is spinning anti-clockwise
                 jogwheelReversed = true;
-                jogwheelSpinning = false; // Reset clockwise spinning flag
-                lastMovementTime = ofGetElapsedTimeMillis(); // Update last activity time
+                jogwheelSpinning = false;
+                lastMovementTime = ofGetElapsedTimeMillis();
             } else if (jogwheelSpinning && message.value == 1) {
-                // Jogwheel has been released
                 unsigned long now = ofGetElapsedTimeMillis();
-                if (now - lastMovementTime > 100) { // 100ms debounce
-                    // Jogwheel released after clockwise spin
+                if (now - lastMovementTime > 100) {
                     jogwheelSpinning = false;
-                    // Advance to the next clip
                     currentFootageIndex = (currentFootageIndex + 1) % currentTopic->footage.size();
                     playCurrentFootage();
                     ofLog() << "Jogwheel released (clockwise): Advancing to next clip";
                 }
             } else if (jogwheelReversed && message.value == 127) {
-                // Jogwheel has been released after anti-clockwise spin
                 unsigned long now = ofGetElapsedTimeMillis();
-                if (now - lastMovementTime > 100) { // 100ms debounce
-                    // Jogwheel released after anti-clockwise spin
+                if (now - lastMovementTime > 100) {
                     jogwheelReversed = false;
-                    // Go back to the previous clip
                     currentFootageIndex = (currentFootageIndex - 1 + currentTopic->footage.size()) % currentTopic->footage.size();
                     playCurrentFootage();
                     ofLog() << "Jogwheel released (anti-clockwise): Going back to previous clip";
@@ -284,56 +292,135 @@ void ChronologyManager::newMidiMessage(ofxMidiMessage& message) {
             }
         }
         
-        if (currentTopic && !playingAnchor) {
-            // Handle jogwheel (Controller #25)
-            if (message.status == MIDI_CONTROL_CHANGE && message.control == 24) {
-                // Clockwise jogwheel values (e.g., low range: 2–10)
-                if (message.value >= 5 && message.value <= 10) {
-                    if (!isLooping) {
-                        startLooping(); // Start looping
-                    }
-                    ofLog() << "Jogwheel turned clockwise: Looping enabled.";
+        // Handle jogwheel
+        if (message.status == MIDI_CONTROL_CHANGE && message.control == 24) {
+            if (message.value >= 5 && message.value <= 10) {
+                if (!isLooping) {
+                    startLooping();
                 }
+                ofLog() << "Jogwheel turned clockwise: Looping enabled.";
+            }
+            
+            if (message.value >= 110 && message.value <= 124) {
+                if (isLooping) {
+                    stopLooping();
+                }
+                ofLog() << "Jogwheel turned anti-clockwise: Looping disabled.";
+            }
+        }
+        
+        // Handles split screen control
+        if (message.status == MIDI_CONTROL_CHANGE && message.control == 10) {
+            bool enableSplitScreen = message.value >= 64;
+            if (splitScreenMode != enableSplitScreen) {
+                toggleSplitScreen(enableSplitScreen);
+                ofLog() << "MIDI Controller #27: Split screen " << (enableSplitScreen ? "ON" : "OFF");
+            }
+        }
+        
+        // Handles topic selection
+        if (message.status == MIDI_NOTE_ON) {
+            if (message.pitch == 60 || message.pitch == 51) {
+                selectRandomTopic();
+                ofLog() << "Button " << message.pitch << ": Selected a random topic.";
+            }
+        }
+        
+        // Handles split screen advancement
+        if (message.status == MIDI_NOTE_ON && message.pitch == 66) {
+            if (!note66Pressed && !note66HasAdvanced) {
+                note66Pressed = true;
+                note66HasAdvanced = true;
                 
-                // Anti-clockwise jogwheel values (e.g., high range: 110–124)
-                if (message.value >= 110 && message.value <= 124) {
-                    if (isLooping) {
-                        stopLooping(); // Stop looping
+                if (splitScreenMode && !splitScreenClips.empty()) {
+                    // Stops current video
+                    splitScreenClips[currentSplitIndex].video.stop();
+                    
+                    // Checks if reached end
+                    if (currentSplitIndex + 1 >= splitScreenClips.size()) {
+                        // Reshuffle and start from beginning
+                        randomizeSplitScreenOrder();
+                    } else {
+                        // Advance to next clip
+                        currentSplitIndex++;
                     }
-                    ofLog() << "Jogwheel turned anti-clockwise: Looping disabled.";
+                    
+                    // Start new video from beginning
+                    splitScreenClips[currentSplitIndex].video.play();
+                    
+                    ofLog() << "MIDI Note 66: Advanced to split screen clip "
+                           << currentSplitIndex << " - " << splitScreenClips[currentSplitIndex].file;
                 }
             }
         }
-        // Handle topic navigation (Controller #26)
-        if (message.status == MIDI_CONTROL_CHANGE && message.control == 26) {
-            if (message.value == 1) {
-                // Advance to the next topic
-                selectRandomTopic();
-                ofLog() << "Controller #26: Advanced to the next topic.";
-            } else if (message.value == 127) {
-                // Go back to the previous topic
-                static int previousTopicIndex = -1;
-                if (previousTopicIndex >= 0) {
-                    currentTopic = &topics[previousTopicIndex];
-                    currentTopic->anchor.video.play();
-                    playingAnchor = true;
-                    ofLog() << "Controller #26: Returned to the previous topic.";
-                } else {
-                    ofLog() << "Controller #26: No previous topic to return to.";
-                }
-            }
+        else if (message.status == MIDI_NOTE_OFF && message.pitch == 66) {
+            note66Pressed = false;
+            note66HasAdvanced = false;
         }
     }
-    
 }
 
-ofVideoPlayer* ChronologyManager::getCurrentVideo() {
-    if (currentTopic) {
-        if (playingAnchor) {
-            return &currentTopic->anchor.video;
-        } else {
-            return &currentTopic->footage[currentFootageIndex].video;
+    
+    ofVideoPlayer* ChronologyManager::getCurrentVideo() {
+        if (currentTopic) {
+            if (playingAnchor) {
+                return &currentTopic->anchor.video;
+            } else {
+                return &currentTopic->footage[currentFootageIndex].video;
+            }
         }
+        return nullptr; // Return null if no video is playing
     }
-    return nullptr; // Return null if no video is playing
+    
+void ChronologyManager::toggleSplitScreen(bool enable) {
+    if (playingAnchor) {
+        enable = false;
+        ofLog() << "Split screen disabled during anchor playback";
+    }
+
+    splitScreenMode = enable;
+    isSplitScreenActive = enable;
+    
+    if (enable) {
+        if (!splitScreenClips.empty()) {
+            // Reshuffles when first activating split screen
+            if (needReshuffleSplitScreen) {
+                randomizeSplitScreenOrder();
+            }
+            
+            // All split screen videos to loop
+            for (auto& clip : splitScreenClips) {
+                clip.video.setLoopState(OF_LOOP_NORMAL);
+            }
+            
+            if (!splitScreenClips[currentSplitIndex].video.isPlaying()) {
+                splitScreenClips[currentSplitIndex].video.play();
+            }
+            ofLog() << "Split screen activated with clip: " << splitScreenClips[currentSplitIndex].file;
+            
+            if (!playingAnchor && !currentTopic->footage[currentFootageIndex].video.isPlaying()) {
+                playCurrentFootage();
+            }
+        } else {
+            ofLogWarning() << "No split screen clips available!";
+            splitScreenMode = false;
+            isSplitScreenActive = false;
+        }
+    } else {
+        for (auto& clip : splitScreenClips) {
+            clip.video.setPaused(true);
+        }
+        // Reshuffle when split screen is activated
+        needReshuffleSplitScreen = true;
+        ofLog() << "Split screen deactivated (videos paused)";
+    }
+}
+
+void ChronologyManager::randomizeSplitScreenOrder() {
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(splitScreenClips.begin(), splitScreenClips.end(), g);
+    currentSplitIndex = 0;
+    needReshuffleSplitScreen = false;
+    ofLog() << "Randomized split screen clip order";
 }

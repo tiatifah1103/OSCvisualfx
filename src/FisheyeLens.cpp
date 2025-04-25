@@ -15,68 +15,73 @@ void FisheyeLens::setup(float _distortionStrength) {
 
 //Applies the fisheye effect to a texture
 void FisheyeLens::update(const ofTexture &videoTexture) {
-    //Rendering into the offscreen FBO
-    distortedFrame.begin();
-    ofClear(0, 0, 0, 255); // Clear with full transparency
-
     int width = videoTexture.getWidth();
     int height = videoTexture.getHeight();
 
-    // Reads pixels from the texture into an ofImage
-    ofPixels pixels;
-    ofImage image;
-    image.allocate(width, height, OF_IMAGE_COLOR_ALPHA); // Allocate the image buffer
-    videoTexture.readToPixels(image.getPixels());        // Copy pixels from the texture
-    pixels = image.getPixels();
-    image.update();                                      // Push pixel changes to the GPU
 
-    // Mesh that will be used to remap the image using fisheye distortion
+    float maxDim = std::max(width, height); // keep proportions
+    float scaleX = (float)width / maxDim;
+    float scaleY = (float)height / maxDim;
+
+    distortedFrame.begin();
+    ofClear(0, 0, 0, 255);
+
     ofMesh mesh;
     mesh.setMode(OF_PRIMITIVE_TRIANGLES);
 
-    int step = 10; // The step controls mesh resolution, lower num - finer res, higher - faster loading
+    int step = 10; // controls how fine the mesh is
 
-    // Loopx through the image in a grid pattern, adding vertices and distorted texture coordinates
-    for (int y = 0; y < height; y += step) {
-        for (int x = 0; x < width; x += step) {
-            // Normalised UV coordinates (0-1)
-            float u = x / float(width);
-            float v = y / float(height);
+    for (int y = 0; y < height - step; y += step) {
+        for (int x = 0; x < width - step; x += step) {
+            for (int dy = 0; dy <= step; dy += step) {
+                for (int dx = 0; dx <= step; dx += step) {
+                    float srcX = x + dx;
+                    float srcY = y + dy;
 
-            // Convertx UV to normalised screen space (-1 to 1)
-            float nx = u * 2.0 - 1.0;
-            float ny = v * 2.0 - 1.0;
-            float r = sqrt(nx * nx + ny * ny); // Distance from center
+                    // Normalise coordinates to [-1, 1] with aspect ratio preserved
+                    float nx = ((srcX / width) * 2.0f - 1.0f) / scaleX;
+                    float ny = ((srcY / height) * 2.0f - 1.0f) / scaleY;
 
-            float distortion = 1.0;
-            if (r < 1.0) {
-                // Radial fisheye distortion
-                distortion = 1.0 + distortionStrength * (r * r);
+                    // Compute radius from center
+                    float r = sqrt(nx * nx + ny * ny);
+
+                    // Applies fisheye distortion
+                    float theta = atan(r);
+                    float distortedR = (r > 0.0f) ? theta / r : 1.0f;
+                    distortedR = 1.0 + distortionStrength * (distortedR - 1.0);
+
+                    float distortedX = nx * distortedR;
+                    float distortedY = ny * distortedR;
+
+                    // Bring back to 0 width, 0 height space
+                    float u = ((distortedX * scaleX) + 1.0f) * 0.5f * width;
+                    float v = ((distortedY * scaleY) + 1.0f) * 0.5f * height;
+
+                    mesh.addVertex(glm::vec3(srcX, srcY, 0));
+                    mesh.addTexCoord(glm::vec2(u, v));
+                }
             }
 
-            // Applies distortion to normalised coordinates
-            float dx = nx * distortion;
-            float dy = ny * distortion;
+            int i = mesh.getNumVertices();
+            mesh.addIndex(i - 4);
+            mesh.addIndex(i - 3);
+            mesh.addIndex(i - 2);
 
-            // Converts back to pixel space
-            float distortedX = (dx + 1.0) * 0.5 * width;
-            float distortedY = (dy + 1.0) * 0.5 * height;
-
-            // Adds original screen vertex
-            mesh.addVertex(glm::vec3(x, y, 0));
-            // Uses distorted UVs for sampling the texture
-            mesh.addTexCoord(glm::vec2(distortedX, distortedY));
+            mesh.addIndex(i - 4);
+            mesh.addIndex(i - 2);
+            mesh.addIndex(i - 1);
         }
     }
 
-    // Binds the images texture and draw the distorted mesh
-    image.getTexture().bind();
+    videoTexture.bind();
     mesh.draw();
-    image.getTexture().unbind();
+    videoTexture.unbind();
 
-    // End FBO rendering
     distortedFrame.end();
 }
+
+
+
 
 // Draws the distorted result at a certain position and size on screen
 void FisheyeLens::apply(float x, float y, float width, float height) {

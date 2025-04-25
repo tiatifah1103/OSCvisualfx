@@ -21,6 +21,8 @@ class ofApp : public ofBaseApp{
         void exit() override;
 
         void keyPressed(int key) override;
+    
+    void drawSplitScreen();
       //  void keyReleased(int key) override;
         
     
@@ -50,11 +52,14 @@ class ofApp : public ofBaseApp{
     vector<ofVideoPlayer> videos;
     int currentVideoIndex = 0;  // Track the current video index
     
+    
     ChronologyManager chronologyManager;
     FisheyeLens fisheye;
     bool isFisheyeActive = false;
     bool isGlitchActive = false;
     bool isStepActive = false;
+    
+    bool isMotionBlurActive;
 
 };
 

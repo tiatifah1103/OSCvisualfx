@@ -2,6 +2,7 @@
 #include "ofMain.h"
 #include "ofxJSON.h"
 #include "ofxMidi.h"
+#include "ofSoundStream.h"
 //#include "ofApp.h"
 
 
@@ -45,8 +46,16 @@ public:
     // MIDI methods
     void newMidiMessage(ofxMidiMessage& message);
     void drawSplitScreen();
-    
+
     ofVideoPlayer* getCurrentVideo();
+    
+    bool isSplitScreenActive = false;  // Flag to control split screen state
+       void toggleSplitScreen(bool enable);  // Method to toggle split screen state
+    bool isPlayingAnchor() const { return playingAnchor; }
+    
+    bool splitScreenMode = false;
+    int currentSplitIndex = 0;
+
 
 private:
 
@@ -55,6 +64,7 @@ private:
     void playCurrentFootage();
     void startLooping();
     void stopLooping();
+    void randomizeSplitScreenOrder();
     
     bool isLooping = false;           // To track whether the loop is active
     float loopStartTime = 0;
@@ -66,8 +76,15 @@ private:
     ofxMidiIn midiIn;
     ofxMidiMessage midiMessage;
     
-    bool splitScreenMode = false;
-    int currentSplitIndex = 0;
+    bool note66Pressed = false;
+    bool note66HasAdvanced = false;
+    bool needReshuffleSplitScreen = true;
+    
+ 
+  
+    
+
+
 
 
 };
