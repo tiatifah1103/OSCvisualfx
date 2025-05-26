@@ -14,16 +14,25 @@ public:
     
     void setup(int _stepInterval);
     void update(const ofTexture &videoTexture);
-    void apply(ofVideoPlayer &video, float x, float y, float width, float height);
+   // void apply(ofVideoPlayer &video, float x, float y, float width, float height);
     void clear();
     void setStepInterval(int interval);
-    void setMaxStoredFrames(int maxFrames);
+    void setMaxStoredFrames(int maxFrames, bool forceClear = false);
+
+    void setFadeStrength(float strength);
+  //  void clearFrames();
+    bool isActive() const;
+    
+    void resetAllParameters();
+    void clearFrames();
+    void apply(ofFbo& fbo);
     
 private:
-    vector<ofImage> storedFrames;
+    std::vector<ofFbo> storedFrames;
     int stepInterval;
     int frameCounter;
     int maxStoredFrames;
     float feedbackFactor; // Dynamic factor influenced by feedback
+    float fadeStrength = 1.5f; // controls how fast frames fade (lower = smoother trail)
 
 };
