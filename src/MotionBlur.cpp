@@ -29,6 +29,10 @@ float MotionBlur::colorDistance(const ofColor &color1, const ofColor &color2) {
 }
 
 void MotionBlur::update(const ofTexture &videoTexture) {
+    
+    // Skip processing if texture isn't ready
+     if (!videoTexture.isAllocated()) return;
+    
     int downsampleFactor = 4;
 
     // Converts texture to pixels
@@ -44,30 +48,42 @@ void MotionBlur::update(const ofTexture &videoTexture) {
     }
     distortedFrame.begin();
     ofClear(0, 0, 0, 0);
+    
+    // If there's a previous frame to compare
 
     if (previousFramePixels.getWidth() != 0) {
         int width = currentPixels.getWidth();
         int height = currentPixels.getHeight();
-
+        
+        // Loop through the pixels with a step size of downsampleFactor for efficiency
         for (int y = 0; y < height; y += downsampleFactor) {
             for (int x = 0; x < width; x += downsampleFactor) {
+                // Get colours from the current and previous frame at the same pixel
                 ofColor currentColor = currentPixels.getColor(x, y);
                 ofColor previousColor = previousFramePixels.getColor(x, y);
+                
+                // Calculates how different the current pixel is from the previous
                 float difference = colorDistance(currentColor, previousColor);
-
+                
+                // Maps the color difference to a stretch amount (larger difference = more blur/stretch)
                 float stretch = ofMap(difference, 0, 255, 0, stretchAmount);
 
+                // If the pixels have moved / changed enough stretch them
                 if (stretch > 0) {
                     int stretchOffset = stretch;
+                    // Calculate left and right stretch positions - clamped to image bounds
                     int leftX = ofClamp(x - stretchOffset, 0, width - 1);
                     int rightX = ofClamp(x + stretchOffset, 0, width - 1);
 
+                    // Blend the current and previous colors for a smooth visual transition
                     ofColor blendColor = currentColor.getLerped(previousColor, 0.5f);
                     ofSetColor(blendColor);
 
+                    // Draws rectangles at left and right positions to simulate motion blur
                     ofDrawRectangle(leftX, y, downsampleFactor, downsampleFactor);
                     ofDrawRectangle(rightX, y, downsampleFactor, downsampleFactor);
                 } else {
+                    // If there's no difference draw current pixel normally
                     ofSetColor(currentColor);
                     ofDrawRectangle(x, y, downsampleFactor, downsampleFactor);
                 }
@@ -75,6 +91,7 @@ void MotionBlur::update(const ofTexture &videoTexture) {
         }
     }
 
+    // Finish drawing to the framebuffer
     distortedFrame.end();
 
     // Accumulate
@@ -83,14 +100,27 @@ void MotionBlur::update(const ofTexture &videoTexture) {
     distortedFrame.draw(0, 0, ofGetWidth(), ofGetHeight());
     accumulationBuffer.end();
 
+    // Stores the current frame pixels as previous for next update
     previousFramePixels = currentPixels;
 }
 
 
-void MotionBlur::apply(ofVideoPlayer &video, float x, float y, float width, float height){
-    // Draw the accumulated motion blur from the buffer
-    ofSetColor(255);
-    accumulationBuffer.draw(x, y, width, height);
+void MotionBlur::apply(ofFbo& fbo) {
+    // Create temporary FBO
+    ofFbo tempFbo;
+    tempFbo.allocate(fbo.getWidth(), fbo.getHeight());
+    
+    // Apply motion blur to the input FBO
+    tempFbo.begin();
+    ofClear(0, 0, 0, 255);
+    accumulationBuffer.draw(0, 0);
+    tempFbo.end();
+    
+    // Draw result back to original FBO
+    fbo.begin();
+    ofClear(0, 0, 0, 255);
+    tempFbo.draw(0, 0);
+    fbo.end();
 }
 
 void MotionBlur::clear(){
@@ -119,3 +149,10 @@ void MotionBlur::setStretchAmount(float amount) {
 float MotionBlur::getStretchAmount() const {
     return stretchAmount;
 }
+
+void MotionBlur::resetAllParameters() {
+    blendFactor = 0.0f;
+    stretchAmount = 0.0f;
+    clear();
+}
+

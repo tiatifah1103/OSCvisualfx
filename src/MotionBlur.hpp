@@ -16,7 +16,7 @@ public:
     
     void setup(float _blendFactor, float _stretchAmount);
     void update(const ofTexture &videoTexture);
-    void apply(ofVideoPlayer &video, float x, float y, float width, float height);
+   // void apply(ofVideoPlayer &video, float x, float y, float width, float height);
     float colorDistance(const ofColor &color1, const ofColor &color2);
     void clear();
     
@@ -27,7 +27,8 @@ public:
     // Getter and Setter for stretchAmount
     void setStretchAmount(float amount);
     float getStretchAmount() const;
-    
+    void resetAllParameters();
+    void apply(ofFbo& fbo);
 private:
     float blendFactor;
     float stretchAmount;
