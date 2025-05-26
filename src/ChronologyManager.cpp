@@ -6,6 +6,7 @@ void ChronologyManager::setup() {
     ofFile file("footage.json");
     if (file.exists()) {
         ofJson json = ofLoadJson(file);
+        // Iterate through each topic defined in the JSON
         for (const auto& topicJson : json["topics"]) {
             Topic topic;
             topic.name = topicJson["topic_name"];
@@ -16,16 +17,17 @@ void ChronologyManager::setup() {
             topic.anchor.video.load(topic.anchor.videoPath);
             topic.anchor.video.setLoopState(OF_LOOP_NONE); // Play anchor once
 
-            // Load footage
+            // Load all associated footage clips for the topic
             for (const auto& footageJson : topicJson["footage"]) {
                 Clip clip;
                 clip.videoPath = footageJson["video_path"];
                 clip.description = footageJson["description"];
                 clip.video.load(clip.videoPath);
-                clip.video.setLoopState(OF_LOOP_NONE); // Don't loop by default
+                clip.video.setLoopState(OF_LOOP_NORMAL); // Loop footage videos indefinitely
                 topic.footage.push_back(clip);
             }
 
+            // Add fully constructed topic to the list
             topics.push_back(topic);
         }
         
@@ -38,7 +40,7 @@ void ChronologyManager::setup() {
 
     }
     
-    
+    // Load split screen from external JSON
     ofJson splitJson = ofLoadJson("splitscreen.json");
 
         for (const auto& entry : splitJson["splitScreens"]) {
@@ -46,11 +48,12 @@ void ChronologyManager::setup() {
             clip.id = entry["id"];
             clip.file = entry["file"];
             clip.hasAudio = entry["hasAudio"];
-
+            
+            // Load and configure split screen video clips
             clip.video.load("videos/" + clip.file);
             clip.video.setLoopState(OF_LOOP_NORMAL);
             clip.video.stop();  // Stop them initially
-            clip.video.setVolume(0.0f);
+            clip.video.setVolume(0.0f); // Silent by default
 
             splitScreenClips.push_back(clip);
             ofLog() << "Loaded " << splitScreenClips.size() << " split screen clips.";
@@ -67,6 +70,7 @@ void ChronologyManager::setup() {
 
 void ChronologyManager::update() {
     if (currentTopic) {
+        // If manual looping is enabled, manage loop playback timing
         if (isLooping) {
             // Get current playback time in seconds
             float currentTime = currentTopic->footage[currentFootageIndex].video.getPosition() *
@@ -93,6 +97,7 @@ void ChronologyManager::update() {
                 randomizeFootageOrder();
             }
         } else {
+            // Update the current looping footage clip
             currentTopic->footage[currentFootageIndex].video.update();
         }
     }
@@ -104,6 +109,7 @@ void ChronologyManager::draw() {
         if (splitScreenMode && !splitScreenClips.empty()) {
             drawSplitScreen();
         } else {
+            // Fullscreen drawing of either anchor or regular footage
             if (playingAnchor) {
                 currentTopic->anchor.video.draw(0, 0, ofGetWidth(), ofGetHeight());
             } else {
@@ -118,7 +124,7 @@ void ChronologyManager::drawSplitScreen() {
     float halfWidth = ofGetWidth() / 2.0f;
     float height = ofGetHeight();
 
-    // Draw main footage
+    // Draw main footage - left side
     if (!playingAnchor) {
         // Ensures main video is playing
         if (!currentTopic->footage[currentFootageIndex].video.isPlaying()) {
@@ -126,6 +132,7 @@ void ChronologyManager::drawSplitScreen() {
         }
         currentTopic->footage[currentFootageIndex].video.draw(0, 0, halfWidth, height);
     } else {
+        // If anchor active, draw instead
         currentTopic->anchor.video.draw(0, 0, halfWidth, height);
     }
 
@@ -136,6 +143,7 @@ void ChronologyManager::drawSplitScreen() {
             splitScreenClips[currentSplitIndex].video.play();
         }
         
+        // Update the right side video
         splitScreenClips[currentSplitIndex].video.update();
         
         // Aspect-ratio correct dimensions
@@ -149,10 +157,12 @@ void ChronologyManager::drawSplitScreen() {
         float drawY = 0;
         
         if (videoAspect > screenAspect) {
+            // Width-constrained scaling
             drawWidth = halfWidth;
             drawHeight = drawWidth / videoAspect;
             drawY = (height - drawHeight) / 2.0f;
         } else {
+            // Height-constrained scaling
             drawHeight = height;
             drawWidth = drawHeight * videoAspect;
             drawX = halfWidth + (halfWidth - drawWidth) / 2.0f;
@@ -212,43 +222,44 @@ void ChronologyManager::selectRandomTopic() {
 }
 
 void ChronologyManager::randomizeFootageOrder() {
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(currentTopic->footage.begin(), currentTopic->footage.end(), g);
-    playCurrentFootage();
+    std::random_device rd;  // gets random seed from the hardware
+    std::mt19937 g(rd());               // Seed the random number generator
+    std::shuffle(currentTopic->footage.begin(), currentTopic->footage.end(), g); // Shuffles the footage vector
+    playCurrentFootage(); // Plays the first video in the newly shuffled order
 }
 
 void ChronologyManager::playCurrentFootage() {
-    // Only stopa other videos if they are playing
+    // stops all other video clips except the one currently being played
     for (auto& clip : currentTopic->footage) {
-        if (&clip != &currentTopic->footage[currentFootageIndex] && clip.video.isPlaying()) {
-            clip.video.stop();
+        if (&clip != &currentTopic->footage[currentFootageIndex]) {
+            clip.video.stop(); // stops non-current videos to avoid overlap
         }
     }
     
-    // Only start playing if not already playing
-    if (!currentTopic->footage[currentFootageIndex].video.isPlaying()) {
-        currentTopic->footage[currentFootageIndex].video.play();
-    }
+    // Start/restart the current video
+    currentTopic->footage[currentFootageIndex].video.setLoopState(OF_LOOP_NORMAL); // loop video
+    currentTopic->footage[currentFootageIndex].video.play();
     
-    isLooping = false; // Reset looping
-    ofLog() << "Playing footage: " << currentTopic->footage[currentFootageIndex].videoPath;
+    isLooping = false; // Reset manual looping
+    ofLog() << "Playing footage (looped): " << currentTopic->footage[currentFootageIndex].videoPath; // Log current video
 }
 
+// Starts a short manual loop near the current playback position (for the right jogwheel)
 void ChronologyManager::startLooping() {
     float currentTime = currentTopic->footage[currentFootageIndex].video.getPosition() *
-                        currentTopic->footage[currentFootageIndex].video.getDuration();
-    loopStartTime = std::max(0.0f, currentTime - loopDuration); // Ensure we don't go below 0
-    loopEndTime = currentTime;
-    isLooping = true;
+                        currentTopic->footage[currentFootageIndex].video.getDuration(); // Get current time in seconds
+    loopStartTime = std::max(0.0f, currentTime - loopDuration); // Define start of loop, clamped to  0
+    loopEndTime = currentTime;  // Define end of loop at current position
+    isLooping = true;                  // Enable manual looping
     ofLog() << "Started looping from " << loopStartTime << "s to " << loopEndTime << "s";
 }
 
+// Stops any active manual looping
 void ChronologyManager::stopLooping() {
-    isLooping = false;
-    loopStartTime = 0;
-    loopEndTime = 0;
-    ofLog() << "Exited the loop.";
+    isLooping = false;                 // Disable looping
+    loopStartTime = 0;                 // Reset loop start
+    loopEndTime = 0;                   // Reset loop end
+    ofLog() << "Exited the loop.";     // Log loop exit
 }
 
 void ChronologyManager::newMidiMessage(ofxMidiMessage& message) {
@@ -317,14 +328,7 @@ void ChronologyManager::newMidiMessage(ofxMidiMessage& message) {
                 ofLog() << "MIDI Controller #27: Split screen " << (enableSplitScreen ? "ON" : "OFF");
             }
         }
-        
-        // Handles topic selection
-        if (message.status == MIDI_NOTE_ON) {
-            if (message.pitch == 60 || message.pitch == 51) {
-                selectRandomTopic();
-                ofLog() << "Button " << message.pitch << ": Selected a random topic.";
-            }
-        }
+    
         
         // Handles split screen advancement
         if (message.status == MIDI_NOTE_ON && message.pitch == 66) {
@@ -349,7 +353,7 @@ void ChronologyManager::newMidiMessage(ofxMidiMessage& message) {
                     splitScreenClips[currentSplitIndex].video.play();
                     
                     ofLog() << "MIDI Note 66: Advanced to split screen clip "
-                           << currentSplitIndex << " - " << splitScreenClips[currentSplitIndex].file;
+                    << currentSplitIndex << " - " << splitScreenClips[currentSplitIndex].file;
                 }
             }
         }
@@ -358,8 +362,15 @@ void ChronologyManager::newMidiMessage(ofxMidiMessage& message) {
             note66HasAdvanced = false;
         }
     }
+    
+    
+    if (!currentTopic) return;
+    
+    // Always allow topic switching via MIDI notes 60/51
+    if (message.status == MIDI_NOTE_ON && (message.pitch == 60 || message.pitch == 51)) {
+        selectRandomTopic();
+    }
 }
-
     
     ofVideoPlayer* ChronologyManager::getCurrentVideo() {
         if (currentTopic) {

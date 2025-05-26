@@ -3,8 +3,9 @@
 #include "ofxJSON.h"
 #include "ofxMidi.h"
 #include "ofSoundStream.h"
-//#include "ofApp.h"
 
+// Forward declare ofApp to break circular dependency
+class ofApp;
 
 class ChronologyManager : public ofBaseApp, public ofxMidiListener {
 public:
@@ -80,8 +81,7 @@ private:
     bool note66HasAdvanced = false;
     bool needReshuffleSplitScreen = true;
     
- 
-  
+
     
 
 
